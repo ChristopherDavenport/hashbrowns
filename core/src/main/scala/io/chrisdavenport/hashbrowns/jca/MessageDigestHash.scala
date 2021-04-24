@@ -6,7 +6,7 @@ import java.security.MessageDigest
 import cats.Applicative
 import cats.effect._
 import cats.syntax.all._
-import fs2.{Chunk, Pipe, Stream}
+import fs2.Stream
 
 private class MessageDigestHash[F[_]: Applicative, A] private[jca](val alg: String) extends RawHash[F] with CryptoHash[F, A] {
 
