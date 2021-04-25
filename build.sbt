@@ -1,5 +1,7 @@
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
+val projectName: String = "hashbrowns"
+
 val Scala213 = "3.0.0-RC2"
 
 ThisBuild / crossScalaVersions := Seq("2.13.5", Scala213)
@@ -58,7 +60,6 @@ ThisBuild / githubWorkflowPublish := Seq(
   )
 )
 
-
 val catsV = "2.6.0"
 val catsEffectV = "3.1.0"
 val fs2V = "3.0.1"
@@ -71,13 +72,30 @@ val betterMonadicForV = "0.3.1"
 // Projects
 lazy val `hashbrowns` = project.in(file("."))
   .disablePlugins(MimaPlugin)
-  .enablePlugins(NoPublishPlugin)
-  .aggregate(core)
+  .enablePlugins(NoPublishPlugin, ScalaJSPlugin)
+  .aggregate(core.jvm, kernel.jvm, kernel.js)
 
-lazy val core = project.in(file("core"))
+lazy val kernel = crossProject(JSPlatform, JVMPlatform)
   .settings(commonSettings)
   .settings(
-    name := "hashbrowns"
+    name := s"${projectName}-kernel"
+  )
+
+lazy val core = crossProject(JVMPlatform)
+  .settings(commonSettings)
+  .settings(
+    name := s"${projectName}-core",
+    libraryDependencies ++= Seq(
+      "org.typelevel"               %% "cats-core"                  % catsV,
+      "org.typelevel"               %% "alleycats-core"             % catsV,
+
+      "org.typelevel"               %% "cats-effect"                % catsEffectV,
+
+      "co.fs2"                      %% "fs2-core"                   % fs2V,
+      "co.fs2"                      %% "fs2-io"                     % fs2V,
+
+      "org.typelevel"               %%% "munit-cats-effect-3"        % munitCatsEffectV         % Test,
+    )
   )
 
 lazy val site = project.in(file("site"))
@@ -86,7 +104,7 @@ lazy val site = project.in(file("site"))
   .enablePlugins(MdocPlugin)
   .enablePlugins(NoPublishPlugin)
   .settings(commonSettings)
-  .dependsOn(core)
+  .dependsOn(core.jvm)
   .settings{
     import microsites._
     Seq(
@@ -139,20 +157,7 @@ lazy val commonSettings = Seq(
       Seq()
     else
       old
-  },
-
-  libraryDependencies ++= Seq(
-    "org.typelevel"               %% "cats-core"                  % catsV,
-    "org.typelevel"               %% "alleycats-core"             % catsV,
-
-    "org.typelevel"               %% "cats-effect"                % catsEffectV,
-
-    "co.fs2"                      %% "fs2-core"                   % fs2V,
-    "co.fs2"                      %% "fs2-io"                     % fs2V,
-
-
-    "org.typelevel"               %%% "munit-cats-effect-3"        % munitCatsEffectV         % Test,
-  )
+  }
 )
 
 // General Settings
