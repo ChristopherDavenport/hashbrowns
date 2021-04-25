@@ -11,7 +11,7 @@ val Scala213Cond = s"matrix.scala == '$Scala213'"
 
 def rubySetupSteps(cond: Option[String]) = Seq(
   WorkflowStep.Use(
-    "ruby", "setup-ruby", "v1",
+    ref = UseRef.Public("ruby", "setup-ruby", "v1"),
     name = Some("Setup Ruby"),
     params = Map("ruby-version" -> "2.6.0"),
     cond = cond),
@@ -40,7 +40,7 @@ ThisBuild / githubWorkflowPublishTargetBranches :=
   Seq(RefPredicate.StartsWith(Ref.Tag("v")), RefPredicate.Equals(Ref.Branch("main")))
 
 ThisBuild / githubWorkflowPublishPreamble ++=
-  WorkflowStep.Use("olafurpg", "setup-gpg", "v3") +: rubySetupSteps(None)
+  WorkflowStep.Use(ref = UseRef.Public("olafurpg", "setup-gpg", "v3")) +: rubySetupSteps(None)
 
 ThisBuild / githubWorkflowPublish := Seq(
   WorkflowStep.Sbt(
@@ -51,7 +51,7 @@ ThisBuild / githubWorkflowPublish := Seq(
       "PGP_SECRET" -> "${{ secrets.PGP_SECRET }}",
       "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
       "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}")),
-  WorkflowStep.Use("christopherdavenport", "create-ghpages-ifnotexists", "v1"),
+  WorkflowStep.Use(UseRef.Public("christopherdavenport", "create-ghpages-ifnotexists", "v1")),
   WorkflowStep.Sbt(
     List("site/publishMicrosite"),
     name = Some("Publish microsite")
@@ -61,7 +61,7 @@ ThisBuild / githubWorkflowPublish := Seq(
 
 val catsV = "2.6.0"
 val catsEffectV = "3.1.0"
-val fs2V = "3.0.1"
+val fs2V = "3.0.2"
 
 val munitCatsEffectV = "1.0.2"
 
@@ -123,19 +123,19 @@ lazy val site = project.in(file("site"))
 lazy val commonSettings = Seq(
   testFrameworks += new TestFramework("munit.Framework"),
   libraryDependencies ++= {
-    if (isDotty.value) Seq.empty
+    if (ScalaArtifacts.isScala3(scalaVersion.value)) Seq.empty
     else Seq(
       compilerPlugin("org.typelevel" % "kind-projector" % kindProjectorV cross CrossVersion.full),
       compilerPlugin("com.olegpy" %% "better-monadic-for" % betterMonadicForV),
     )
   },
   scalacOptions ++= {
-    if (isDotty.value) Seq("-source:3.0-migration")
+    if (ScalaArtifacts.isScala3(scalaVersion.value)) Seq("-source:3.0-migration")
     else Seq()
   },
   Compile / doc / sources := {
     val old = (Compile / doc / sources).value
-    if (isDotty.value)
+    if (ScalaArtifacts.isScala3(scalaVersion.value))
       Seq()
     else
       old
@@ -166,9 +166,9 @@ inThisBuild(List(
   licenses += ("MIT", url("http://opensource.org/licenses/MIT")),
 
   pomIncludeRepository := { _ => false},
-  scalacOptions in (Compile, doc) ++= Seq(
+  Compile / doc / scalacOptions ++= Seq(
       "-groups",
-      "-sourcepath", (baseDirectory in LocalRootProject).value.getAbsolutePath,
+      "-sourcepath", (LocalRootProject / baseDirectory).value.getAbsolutePath,
       "-doc-source-url", "https://github.com/ChristopherDavenport/hashbrowns/blob/v" + version.value + "€{FILE_PATH}.scala"
   )
 ))
